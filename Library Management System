@@ -1,0 +1,298 @@
+package projects;
+
+import java.time.LocalDate;
+import java.util.Scanner;
+
+class Book {
+    private String title;
+    private String author;
+    private String isbn;
+    private String genre;
+    private int quantity;
+
+    public Book(String title, String author, String isbn, String genre, int quantity) {
+        this.title = title;
+        this.author = author;
+        this.isbn = isbn;
+        this.genre = genre;
+        this.quantity = quantity;
+    }
+
+    public void updateInfo(String title, String author, Integer quantity) {
+        if (title != null) this.title = title;
+        if (author != null) this.author = author;
+        if (quantity != null) this.quantity = quantity;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public String getIsbn() {
+        return isbn;
+    }
+
+    public String getGenre() {
+        return genre;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void decreaseQuantity() {
+        if (quantity > 0) quantity--;
+    }
+
+    public void increaseQuantity() {
+        quantity++;
+    }
+
+    @Override
+    public String toString() {
+        return title + " by " + author + " (ISBN: " + isbn + ", Genre: " + genre + ", Quantity: " + quantity + ")";
+    }
+}
+
+class Borrower {
+    private String name;
+    private String contactDetails;
+    private String membershipId;
+
+    public Borrower(String name, String contactDetails, String membershipId) {
+        this.name = name;
+        this.contactDetails = contactDetails;
+        this.membershipId = membershipId;
+    }
+
+    public void updateContact(String contactDetails) {
+        this.contactDetails = contactDetails;
+    }
+
+    public String getMembershipId() {
+        return membershipId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String toString() {
+        return name + " (ID: " + membershipId + ", Contact: " + contactDetails + ")";
+    }
+}
+
+class BorrowRecord {
+    private String membershipId;
+    private String isbn;
+    private LocalDate dueDate;
+
+    public BorrowRecord(String membershipId, String isbn, LocalDate dueDate) {
+        this.membershipId = membershipId;
+        this.isbn = isbn;
+        this.dueDate = dueDate;
+    }
+
+    public String getMembershipId() {
+        return membershipId;
+    }
+
+    public String getIsbn() {
+        return isbn;
+    }
+
+    public LocalDate getDueDate() {
+        return dueDate;
+    }
+
+    public boolean isOverdue() {
+        return LocalDate.now().isAfter(dueDate);
+    }
+
+    @Override
+    public String toString() {
+        return "Membership ID: " + membershipId + ", ISBN: " + isbn + ", Due Date: " + dueDate;
+    }
+}
+
+class LibraryManagementSystem {
+    private Book[] books = new Book[100];
+    private Borrower[] borrowers = new Borrower[100];
+    private BorrowRecord[] borrowRecords = new BorrowRecord[100];
+    private int bookCount = 0;
+    private int borrowerCount = 0;
+    private int borrowRecordCount = 0;
+
+    // Add a book
+    public void addBook(String title, String author, String isbn, String genre, int quantity) {
+        books[bookCount++] = new Book(title, author, isbn, genre, quantity);
+        System.out.println("Book added successfully.");
+    }
+
+    // Add a borrower
+    public void addBorrower(String name, String contactDetails, String membershipId) {
+        borrowers[borrowerCount++] = new Borrower(name, contactDetails, membershipId);
+        System.out.println("Borrower added successfully.");
+    }
+
+    // Borrow a book
+    public void borrowBook(String membershipId, String isbn, int days) {
+        Borrower borrower = null;
+        Book book = null;
+
+        for (int i = 0; i < borrowerCount; i++) {
+            if (borrowers[i].getMembershipId().equals(membershipId)) {
+                borrower = borrowers[i];
+                break;
+            }
+        }
+
+        for (int i = 0; i < bookCount; i++) {
+            if (books[i].getIsbn().equals(isbn)) {
+                book = books[i];
+                break;
+            }
+        }
+
+        if (borrower != null && book != null) {
+            if (book.getQuantity() > 0) {
+                book.decreaseQuantity();
+                borrowRecords[borrowRecordCount++] = new BorrowRecord(membershipId, isbn, LocalDate.now().plusDays(days));
+                System.out.println(borrower.getName() + " borrowed " + book.getTitle() + ". Due date: " + LocalDate.now().plusDays(days));
+            } else {
+                System.out.println("Book is not available.");
+            }
+        } else {
+            System.out.println("Invalid borrower or book.");
+        }
+    }
+
+    // Return a book
+    public void returnBook(String membershipId) {
+        for (int i = 0; i < borrowRecordCount; i++) {
+            if (borrowRecords[i].getMembershipId().equals(membershipId)) {
+                Book book = null;
+
+                for (int j = 0; j < bookCount; j++) {
+                    if (books[j].getIsbn().equals(borrowRecords[i].getIsbn())) {
+                        book = books[j];
+                        break;
+                    }
+                }
+
+                if (book != null) {
+                    book.increaseQuantity();
+                    System.out.println("Book returned successfully. " +
+                            (borrowRecords[i].isOverdue() ? "Book was overdue!" : "Thank you for returning on time."));
+                    borrowRecords[i] = borrowRecords[--borrowRecordCount]; // Replace with the last record and reduce count
+                    return;
+                }
+            }
+        }
+        System.out.println("No borrowed book found for this member.");
+    }
+
+    // Search books
+    public void searchBooks(String title, String author, String genre) {
+        boolean found = false;  // To track if any book is found
+        for (int i = 0; i < bookCount; i++) {
+            boolean matches = (title == null || books[i].getTitle().toLowerCase().contains(title.toLowerCase())) &&
+                              (author == null || books[i].getAuthor().toLowerCase().contains(author.toLowerCase())) &&
+                              (genre == null || books[i].getGenre().toLowerCase().contains(genre.toLowerCase()));
+            if (matches) {
+                System.out.println(books[i]);
+                found = true;  // Book found
+            }
+        }
+
+        if (!found) {
+            System.out.println("Book is not available.");
+        }
+    }
+
+    public static void main(String[] args) {
+        LibraryManagementSystem library = new LibraryManagementSystem();
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("\nLibrary Menu:");
+            System.out.println("1. Add Book");
+            System.out.println("2. Add Borrower");
+            System.out.println("3. Borrow Book");
+            System.out.println("4. Return Book");
+            System.out.println("5. Search Books");
+            System.out.println("6. Exit");
+            System.out.print("Enter your choice: ");
+
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            switch (choice) {
+                case 1:
+                    System.out.print("Enter title: ");
+                    String title = scanner.nextLine();
+                    System.out.print("Enter author: ");
+                    String author = scanner.nextLine();
+                    System.out.print("Enter ISBN: ");
+                    String isbn = scanner.nextLine();
+                    System.out.print("Enter genre: ");
+                    String genre = scanner.nextLine();
+                    System.out.print("Enter quantity: ");
+                    int quantity = scanner.nextInt();
+                    library.addBook(title, author, isbn, genre, quantity);
+                    break;
+
+                case 2:
+                    System.out.print("Enter name: ");
+                    String name = scanner.nextLine();
+                    System.out.print("Enter contact details: ");
+                    String contactDetails = scanner.nextLine();
+                    System.out.print("Enter membership ID: ");
+                    String membershipId = scanner.nextLine();
+                    library.addBorrower(name, contactDetails, membershipId);
+                    break;
+
+                case 3:
+                    System.out.print("Enter membership ID: ");
+                    String borrowMembershipId = scanner.nextLine();
+                    System.out.print("Enter ISBN of book: ");
+                    String borrowIsbn = scanner.nextLine();
+                    System.out.print("Enter borrowing days: ");
+                    int days = scanner.nextInt();
+                    library.borrowBook(borrowMembershipId, borrowIsbn, days);
+                    break;
+
+                case 4:
+                    System.out.print("Enter membership ID: ");
+                    String returnMembershipId = scanner.nextLine();
+                    library.returnBook(returnMembershipId);
+                    break;
+
+                case 5:
+                    System.out.print("Enter title to search (or press Enter to skip): ");
+                    String searchTitle = scanner.nextLine();
+                    System.out.print("Enter author to search (or press Enter to skip): ");
+                    String searchAuthor = scanner.nextLine();
+                    System.out.print("Enter genre to search (or press Enter to skip): ");
+                    String searchGenre = scanner.nextLine();
+                    library.searchBooks(
+                            searchTitle.isEmpty() ? null : searchTitle,
+                            searchAuthor.isEmpty() ? null : searchAuthor,
+                            searchGenre.isEmpty() ? null : searchGenre
+                    );
+                    break;
+
+                case 6:
+                    System.out.println("Exiting the library system.");
+                    scanner.close();
+                    return;
+            }
+        }
+   }
+}
+}
